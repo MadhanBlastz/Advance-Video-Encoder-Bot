@@ -133,13 +133,16 @@ async def doc(bot, update):
     type = update.data.split("_")[1]
     try:
         if type == "document":
+            print("Starting upload...")
             await bot.send_document(
                 update.from_user.id,
                 document=metadata_path,
                 thumb=ph_path,
                 caption=caption,
                 progress=progress_for_pyrogram,
-                progress_args=("⚠️__**Please wait...**__\n🌨️ **Uᴩʟᴏᴅ Sᴛᴀʀᴛᴇᴅ....**", ms, time.time()))
+                progress_args=("⚠️__**Please wait...**__\n🌨️ **Upload Started....**", ms, time.time()))
+            print("Upload completed.")
+
         elif type == "video":
             await bot.send_video(
                 update.from_user.id,
