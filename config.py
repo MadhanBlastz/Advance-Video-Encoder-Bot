@@ -5,9 +5,9 @@ id_pattern = re.compile(r'^.\d+$')
 
 class Config(object):
     # pyro client config
-    API_ID    = os.environ.get("API_ID", "23898744")  # ⚠️ Required
-    API_HASH  = os.environ.get("API_HASH", "0b13c810c80b548604650cbe3c3db0c3") # ⚠️ Required
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "6912498692:AAH0lO6ul6FdyrOG0Nh6uzKsImhFwZrGZWI") # ⚠️ Required
+    API_ID    = os.environ.get("API_ID", "21661450")  # ⚠️ Required
+    API_HASH  = os.environ.get("API_HASH", "79612bc71908f95372808520a7eeee74") # ⚠️ Required
+    BOT_TOKEN = os.environ.get("BOT_TOKEN", "7463606692:AAFVFmyJ8YdI4ZhsY9jhnVQrMOYZzWM1BNI") # ⚠️ Required
     FORCE_SUB = os.environ.get('FORCE_SUB', 'Rohesh_Bots') # ⚠️ Required
     AUTH_CHANNEL = int(FORCE_SUB) if FORCE_SUB and id_pattern.search(
     FORCE_SUB) else None
@@ -17,8 +17,8 @@ class Config(object):
     DB_NAME  = os.environ.get("DB_NAME","SnowEncoderBot") 
 
     # Other Configs 
-    ADMIN = int(os.environ.get("ADMIN", "5698613889")) # ⚠️ Required
-    LOG_CHANNEL = int(os.environ.get('LOG_CHANNEL', '-1002077680328')) # ⚠️ Required
+    ADMIN = int(os.environ.get("ADMIN", "2021408974")) # ⚠️ Required
+    LOG_CHANNEL = int(os.environ.get('LOG_CHANNEL', '-1002233706633')) # ⚠️ Required
     BOT_UPTIME = BOT_UPTIME  = time.time()
     START_PIC = os.environ.get("START_PIC", "https://graph.org/file/15e82d7e665eccc8bd9c5.jpg")
 
