@@ -2,8 +2,10 @@ import asyncio
 from pyrogram import Client, filters, enums
 from pyrogram.enums import MessageMediaType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ForceReply
+
 from hachoir.metadata import extractMetadata
 from hachoir.parser import createParser
+
 from helper.utils import progress_for_pyrogram, convert, humanbytes
 from helper.database import db
 from PIL import Image
@@ -54,6 +56,7 @@ async def refunc(client, message):
 
 @Client.on_callback_query(filters.regex("upload"))
 async def doc(bot, update):
+    
     if not os.path.isdir("Metadata"):
         os.mkdir("Metadata")
 
@@ -77,7 +80,6 @@ async def doc(bot, update):
             duration = metadata.get('duration').seconds
     except:
         pass
-
     ph_path = None
     user_id = update.from_user.id
     media = getattr(file, file.media.value)
@@ -89,7 +91,7 @@ async def doc(bot, update):
             caption = c_caption.format(filename=new_filename, filesize=humanbytes(
                 media.file_size), duration=convert(duration))
         except Exception as e:
-            return await ms.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")
+            return await ms.edit(text=f"Yᴏᴜʀ Cᴀᴩᴛɪᴏɴ Eʀʀᴏʀ Exᴄᴇᴩᴛ Kᴇʏᴡᴏʀᴅ Aʀɢᴜᴍᴇɴᴛ ●> ({e})")
     else:
         caption = f"**{new_filename}**"
 
@@ -100,94 +102,86 @@ async def doc(bot, update):
             ph_path = await bot.download_media(media.thumbs[0].file_id)
         Image.open(ph_path).convert("RGB").save(ph_path)
         img = Image.open(ph_path)
-        img = img.resize((320, 320))  # Fixed image resizing
+        img.resize((320, 320))
         img.save(ph_path, "JPEG")
 
     await ms.edit("__**Pʟᴇᴀsᴇ Wᴀɪᴛ...**__\n**Fᴇᴛᴄʜɪɴɢ Mᴇᴛᴀᴅᴀᴛᴀ....**")
     metadat = await db.get_metadata(user_id)
-
+    
     if metadat:
+        
         await ms.edit("I Fᴏᴜɴᴅ Yᴏᴜʀ Mᴇᴛᴀᴅᴀᴛᴀ\n\n__**Pʟᴇᴀsᴇ Wᴀɪᴛ...**__\n**Aᴅᴅɪɴɢ Mᴇᴛᴀᴅᴀᴛᴀ Tᴏ Fɪʟᴇ....**")
-
-        # Build the FFmpeg command with metadata for all audio and subtitle streams
-        cmd = f"""ffmpeg -i "{dl}" -map 0:v:0 -c:v copy """
-
-        # Add metadata for all audio streams
-        num_audio_streams = int(await asyncio.create_subprocess_shell(
-            f"ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 \"{dl}\" | wc -l",
-            stdout=asyncio.subprocess.PIPE
-        ).communicate()[0].strip())
-
-        for i in range(num_audio_streams):
-            cmd += f"-map 0:a:{i} -c:a:{i} copy -metadata:s:a:{i} title=\"@AniMovieRulz\" -metadata:s:a:{i} description=\"@AniMovieRulz\" "
-
-        # Add metadata for all subtitle streams
-        num_subtitle_streams = int(await asyncio.create_subprocess_shell(
-            f"ffprobe -v error -select_streams s -show_entries stream=index -of csv=p=0 \"{dl}\" | wc -l",
-            stdout=asyncio.subprocess.PIPE
-        ).communicate()[0].strip())
-
-        for i in range(num_subtitle_streams):
-            cmd += f"-map 0:s:{i} -c:s:{i} copy -metadata:s:s:{i} title=\"@AniMovieRulz\" -metadata:s:s:{i} description=\"@AniMovieRulz\" "
-
-        cmd += f"{metadata_path}"
+        cmd = f"""ffmpeg -i "{dl}" {metadat} "{metadata_path}" """
+        
+        # Debug message: print the FFmpeg command
+        await send_debug_message(update.from_user.id, f"FFmpeg command: {cmd}")
 
         process = await asyncio.create_subprocess_shell(
             cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
+            
         stdout, stderr = await process.communicate()
         er = stderr.decode()
 
-        if er:
-            await ms.edit(str(er) + "\n\n**Error**")
-    else:
-        await ms.edit("Mᴇᴛᴀᴅᴀᴛᴀ ᴀᴅᴅᴇᴅ ᴛᴏ ᴛʜᴇ ғɪʟᴇ sᴜᴄᴄᴇssғᴜʟʟʏ ✅\n\n⚠️__**Please wait...**__\n**Tʀʏɪɴɢ Tᴏ Uᴩʟᴏᴀᴅɪɴɢ....**")
-        type = update.data.split("_")[1]
         try:
-            if type == "document":
-                await bot.send_document(
-                    update.from_user.id,
-                    document=metadata_path,
-                    thumb=ph_path,
-                    caption=caption,
-                    progress=progress_for_pyrogram,
-                    progress_args=("⚠️__**Please wait...**__\n🌨️ **Upload Started....**", ms, time.time()))
-            elif type == "video":
-                await bot.send_video(
-                    update.from_user.id,
-                    video=metadata_path,
-                    caption=caption,
-                    thumb=ph_path,
-                    duration=duration,
-                    progress=progress_for_pyrogram,
-                    progress_args=("⚠️__**Please wait...**__\n🌨️ **Uᴩʟᴏᴅ Sᴛᴀʀᴛᴇᴅ....**", ms, time.time()))
-            elif type == "audio":
-                await bot.send_audio(
-                    update.from_user.id,
-                    audio=metadata_path,
-                    caption=caption,
-                    thumb=ph_path,
-                    duration=duration,
-                    progress=progress_for_pyrogram,
-                    progress_args=("⚠️__**Please wait...**__\n🌨️ **Uᴩʟᴏᴅ Sᴛᴀʀᴛᴇᴅ....**", ms, time.time()))
-        except Exception as e:
-            os.remove(file_path)
-            if ph_path:
-                os.remove(ph_path)
-                os.remove(metadata_path)
-            return await ms.edit(f" Eʀʀᴏʀ {e}")
-        finally:
-            try:
-                os.remove(file_path)
-                os.remove(metadata_path)
-                if ph_path:
-                    os.remove(ph_path)
-            except Exception as e:
-                print(e)
+            if er:
+                await ms.edit(str(er) + "\n\n**Error**")
+        except BaseException:
+            pass
 
-        if update.message.chat.type == enums.ChatType.SUPERGROUP:
-            botusername = await bot.get_me()
-            await ms.edit(f"Hey {update.from_user.mention},\n\nI Have Send Renamed File To Your Pm", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Bᴏᴛ Pᴍ", url=f'https://t.me/{botusername.username}')]]))
-        else:
-            await ms.delete()
-      
+    await ms.edit("Mᴇᴛᴀᴅᴀᴛᴀ ᴀᴅᴅᴇᴅ ᴛᴏ ᴛʜᴇ ғɪʟᴇ sᴜᴄᴄᴇssғᴜʟʟʏ ✅\n\n⚠️__**Please wait...**__\n**Tʀyɪɴɢ Tᴏ Uᴩʟᴏᴀᴅɪɴɢ....**")
+    type = update.data.split("_")[1]
+    try:
+        if type == "document":
+            print("Starting upload...")
+            await bot.send_document(
+                update.from_user.id,
+                document=metadata_path,
+                thumb=ph_path,
+                caption=caption,
+                progress=progress_for_pyrogram,
+                progress_args=("⚠️__**Please wait...**__\n🌨️ **Upload Started....**", ms, time.time()))
+            print("Upload completed.")
+
+        elif type == "video":
+            await bot.send_video(
+                update.from_user.id,
+                video=metadata_path,
+                caption=caption,
+                thumb=ph_path,
+                duration=duration,
+                progress=progress_for_pyrogram,
+                progress_args=("⚠️__**Please wait...**__\n🌨️ **Uᴩʟᴏᴅ Sᴛᴀʀᴛᴇᴅ....**", ms, time.time()))
+        elif type == "audio":
+            await bot.send_audio(
+                update.from_user.id,
+                audio=metadata_path,
+                caption=caption,
+                thumb=ph_path,
+                duration=duration,
+                progress=progress_for_pyrogram,
+                progress_args=("⚠️__**Please wait...**__\n🌨️ **Uᴩʟᴏᴅ Sᴛᴀʀᴛᴇᴅ....**", ms, time.time()))
+    except Exception as e:
+        os.remove(file_path)
+        if ph_path:
+            os.remove(ph_path)
+            os.remove(metadata_path)
+        return await ms.edit(f" Eʀʀᴏʀ {e}")
+    try:
+        os.remove(file_path)
+        os.remove(metadata_path)
+        if ph_path:
+            os.remove(ph_path)
+    except Exception as e:
+        print(e)
+
+    if update.message.chat.type == enums.ChatType.SUPERGROUP:
+        botusername = await bot.get_me()
+        await ms.edit(f"Hey {update.from_user.mention},\n\nI Have Send Renamed File To Your Pm", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Bᴏᴛ Pᴍ", url=f'https://t.me/{botusername.username}')]]))
+    else:
+        await ms.delete()
+
+async def send_debug_message(user_id, message):
+    async with Client("my_bot") as bot:
+        await bot.send_message(user_id, message)
+    
